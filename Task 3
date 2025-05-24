@@ -1,0 +1,93 @@
+// Task 3: Real-Time Collaborative Note Editor using WebSocket (Node.js + Express + Socket.io)
+
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('text-change', (data) => {
+    socket.broadcast.emit('receive-text', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+const PORT = 3000;
+server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+
+// --------------------- public/index.html ---------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Collaborative Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Collaborative Note Editor</h1>
+  <textarea id="editor" placeholder="Start typing..."></textarea>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
+
+// --------------------- public/style.css ---------------------
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #f4f4f4;
+  text-align: center;
+}
+h1 {
+  color: #333;
+}
+textarea {
+  width: 90%;
+  height: 400px;
+  margin-top: 20px;
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+// --------------------- public/client.js ---------------------
+const socket = io();
+const editor = document.getElementById('editor');
+
+editor.addEventListener('input', () => {
+  socket.emit('text-change', editor.value);
+});
+
+socket.on('receive-text', (text) => {
+  editor.value = text;
+});
+
+// --------------------- package.json ---------------------
+{
+  "name": "collab-editor",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4"
+  }
+}
+
